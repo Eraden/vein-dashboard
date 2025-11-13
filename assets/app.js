@@ -123,12 +123,11 @@ class VeinPlayers extends HTMLElement {
     }
 
     connectedCallback() {
-        if (this.el) return;
         SSE.on('players', this);
         SSE.on('selected', this, (character) => {
             this.selectedClass = character ? 'w-2/3' : 'hidden';
         });
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
 
     disconnectedCallback() {
@@ -137,12 +136,14 @@ class VeinPlayers extends HTMLElement {
 
     render() {
         return render => render`
-            <div class="flex gap-4">
-                <div :loop=${this.players} class="${this.selected ? 'flex flex-col gap-4 w-1/3' : 'flex flex-col gap-4 w-full'}">
-                    <vein-player player={{self}} />
-                </div>
-                <vein-selected-character :render=${this.selected} />
-            </div
+            <section id="players" class="flex flex-col gap-4">
+                <div class="flex gap-4">
+                    <div :loop=${this.players} class="${this.selected ? 'flex flex-col gap-4 w-1/3' : 'flex flex-col gap-4 w-full'}">
+                        <vein-player player={{self}} />
+                    </div>
+                    <vein-selected-character :render=${this.selected} />
+                </div
+            </section>
         `;
     }
 }
@@ -180,8 +181,6 @@ class VeinSelectedCharacter extends HTMLElement {
     }
 
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
         SSE.on('selected', this, (selected) => {
             if (!selected) return;
             this.occupation = selected.player_character_data.human_occupation
@@ -189,6 +188,7 @@ class VeinSelectedCharacter extends HTMLElement {
             this.stats = selected.stats;
             this.inventory = selected.inventory;
         });
+        if (!this.el) lemonade.render(this.render, this, this);
     }
 
     disconnectedCallback() {
@@ -211,8 +211,7 @@ class VeinInventoryItem extends HTMLElement {
     }
 
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
 
     disconnectedCallback() {
@@ -240,8 +239,7 @@ class VeinPlayer extends HTMLElement {
     }
 
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
 }
 
@@ -252,8 +250,7 @@ class VeinPlayerStats extends HTMLElement {
         this.stats = [];
     }
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
     render() {
         return render => render`
@@ -273,8 +270,7 @@ class VeinPlayerStat extends HTMLElement {
         this.value = 0;
     }
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
     render() {
         return render => render`
@@ -293,13 +289,12 @@ class VeinCharacter extends HTMLElement {
         this.character = { stats: [], player_character_data: {} };
     }
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
         SSE.on('online_characters', this, online => {
             console.log(online, this.character.id);
             this.isOnline = online.includes(this.character.id);
             console.log(this.isOnline);
         });
+        if (!this.el) lemonade.render(this.render, this, this);
     }
     render() {
         const selectCharacter = (ev) => {
@@ -331,8 +326,7 @@ class VeinStat extends HTMLElement {
         this.value = 0;
     }
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
     render() {
         return render => render`
@@ -351,8 +345,7 @@ class VeinCharacterData extends HTMLElement {
         this.occupation = '';
     }
     connectedCallback() {
-        if (this.el) return;
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
     render() {
         return render => render`
@@ -383,9 +376,8 @@ class VeinUptime extends HTMLElement {
         `;
     }
     connectedCallback() {
-        if (this.el) return;
         SSE.on('uptime', this);
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
 
     disconnectedCallback() {
@@ -404,13 +396,125 @@ class VeinLogs extends HTMLElement {
         `;
     }
     connectedCallback() {
-        if (this.el) return;
         SSE.on('logs', this);
-        lemonade.render(this.render, this, this);
+        if (!this.el) lemonade.render(this.render, this, this);
     }
 
     disconnectedCallback() {
         SSE.disconnect(this)
+    }
+}
+
+class VeinMenu extends HTMLElement {
+    constructor() {
+        super();
+    }
+    connectedCallback() {
+        if (this.el) return;
+        lemonade.render(this.render, this, this);
+    }
+
+    render() {
+        const status = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            SSE.fire('page', 'status');
+        };
+        const logs = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            SSE.fire('page', 'logs');
+        };
+        return render => render`
+        <nav class="bg-gray-800 p-6">
+            <ul class="mt-8 flex gap-4">
+                <li>
+                    <a href="#status" class="text-gray-400 hover:text-white" onclick=${status}>
+                        Status
+                    </a>
+                </li>
+                <li>
+                    <a href="#logs" class="text-gray-400 hover:text-white" onclick=${logs}>
+                        Logs
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        `;
+    }
+}
+
+class StatusPage extends HTMLElement {
+    constructor() {
+        super();
+        this.page = 'status';
+    }
+    connectedCallback() {
+        SSE.on('page', this, page => console.log(page));
+        if (!this.el) lemonade.render(this.render, this, this);
+    }
+
+    disconnectedCallback() {
+        SSE.disconnect(this);
+    }
+    render() {
+        return render => render`
+            <article id="status" class="${this.page == 'status' ? 'flex flex-col gap-4 p-8' : 'hidden'}">
+                <section id="uptime" class="flex gap-4">
+                    <vein-uptime uptime=0 />
+                </section>
+
+                <vein-players />
+
+                <section id="characters" class="flex flex-col gap-4">
+                </section>
+            </article>
+        `;
+    }
+}
+
+class LogsPage extends HTMLElement {
+    constructor() {
+        super();
+        this.page = 'status';
+    }
+    connectedCallback() {
+        SSE.on('page', this);
+        SSE.on('logs', this);
+        if (this.el) return;
+        lemonade.render(this.render, this, this);
+    }
+    disconnectedCallback() {
+        SSE.disconnect(this);
+    }
+    render() {
+        return render => render`
+            <article id="logs" class="${this.page == 'logs' ? 'flex flex-col gap-4 p-8' : 'hidden'}">
+                <div :loop=${this.logs}>
+                    <vein-log-line line={{self.line}} level={{self.level}} />
+                </div>
+            </article>
+        `;
+    }
+}
+
+class LogLineView extends HTMLElement {
+    constructor() {
+        super();
+    }
+    connectedCallback() {
+        if (this.el) return;
+        lemonade.render(this.render, this, this);
+    }
+    disconnectedCallback() {
+        SSE.disconnect(this);
+    }
+    render() {
+        return render => render`
+            <div class="${this.level == "error" ? 'text-red-800' : this.level == 'warn' ? 'text-yellow-600' : ''}">
+                ${this.line}
+            </div>
+        `;
     }
 }
 
@@ -434,6 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 });
 
+customElements.define('vein-menu', VeinMenu);
 customElements.define('vein-players', VeinPlayers);
 customElements.define('vein-player', VeinPlayer);
 customElements.define('vein-character', VeinCharacter);
@@ -444,6 +549,9 @@ customElements.define('vein-character-data', VeinCharacterData);
 customElements.define('vein-player-stats', VeinPlayerStats);
 customElements.define('vein-player-stat', VeinPlayerStat);
 customElements.define('vein-selected-character', VeinSelectedCharacter);
+customElements.define('vein-status-page', StatusPage);
+customElements.define('vein-logs-page', LogsPage);
+customElements.define('vein-log-line', LogLineView);
 
 const HANDLERS = {
     /**
