@@ -43,7 +43,7 @@ pub fn start(event_bus: &ServerEventBus, config: &Config) {
                 }
             }
 
-            let out = if cfg!(debug_assertions) {
+            let out = if out.is_err() && cfg!(debug_assertions) {
                 LOGS.trim().bytes().collect::<Vec<u8>>()
             } else {
                 out.unwrap_or_default()

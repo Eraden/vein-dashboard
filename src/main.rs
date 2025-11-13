@@ -103,7 +103,16 @@ async fn style_css() -> HttpResponse {
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let config = Arc::new(RwLock::new(load_config().await?));
+    let config = load_config().await?;
+    let (bind, port) = (
+        config
+            .bind
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| "0.0.0.0".to_string()),
+        config.port.unwrap_or(8765),
+    );
+    let config = Arc::new(RwLock::new(config));
     let client = Client::new(config.clone());
     let event_bus = ServerEventBus::new();
 
@@ -128,7 +137,7 @@ async fn main() -> std::io::Result<()> {
             .service(app_js)
             .service(style_css)
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind((bind.as_str(), port))?
     .run()
     .await
 }
