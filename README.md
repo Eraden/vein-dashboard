@@ -29,8 +29,9 @@ refresh_interval_sec = 5
 
 ## Roudmap
 
-[ ] Install command
-[ ] Icons
-[ ] Web config manipulation
-[ ] Vein dedicated server managment
+* [ ] Authorization
+* [ ] Install command
+* [ ] Icons
+* [ ] Web config manipulation
+* [ ] Vein dedicated server managment
 
