@@ -25,6 +25,7 @@ refresh_interval_sec = 5
 ## Screenshots
 
 ![./assets/status.png](./assets/status.png)
+![./assets/status.png](./assets/log.png)
 
 ## Roudmap
 
