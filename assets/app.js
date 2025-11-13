@@ -427,7 +427,7 @@ class VeinMenu extends HTMLElement {
         };
         return render => render`
         <nav class="bg-gray-800 p-6">
-            <ul class="mt-8 flex gap-4">
+            <ul class="flex gap-4">
                 <li>
                     <a href="#status" class="text-gray-400 hover:text-white" onclick=${status}>
                         Status
