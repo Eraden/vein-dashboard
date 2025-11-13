@@ -1,0 +1,2 @@
+vein_server_bind = "http://vein.ita-prog.pl"
+vein_server_port = 8080

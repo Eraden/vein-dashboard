@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css" />
+    <title>Vein Dashboard</title>
+</head>
+
+<body class="min-h-screen bg-gray-900 text-white">
+    <script src="https://cdn.jsdelivr.net/npm/lemonadejs@5/dist/lemonade.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="/app.js"></script>
+    <main>
+        <nav class="bg-gray-800 p-6">
+            <ul class="mt-8 flex gap-4">
+                <li><a href="#status" class="text-gray-400 hover:text-white">Status</a></li>
+                <li><a href="#logs" class="text-gray-400 hover:text-white">Logs</a></li>
+            </ul>
+        </nav>
+
+        <article id="status" class="flex flex-col gap-4 p-8">
+            <section id="uptime" class="flex gap-4">
+                <vein-uptime uptime=0 />
+            </section>
+
+            <section id="players" class="flex flex-col gap-4">
+                <vein-players />
+            </section>
+
+            <section id="characters" class="flex flex-col gap-4">
+            </section>
+        </article>
+
+        <article id="logs" class="flex-1 p-8 hidden">
+        </article>
+    </main>
+</body>
+
+</html>
