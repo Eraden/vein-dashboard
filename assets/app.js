@@ -52,6 +52,16 @@ const { set, get, dispatch } = lemonade;
 
 const updateAt = (selector, html) => document.body.querySelector(selector).innerHTML = html;
 
+function WebComponent(tag) {
+    return function(...args) {
+        console.log({ args, tag });
+    }
+}
+
+class Foo extends HTMLElement {
+}
+
+
 /**
 * @param {CharacterPayload} character
 */
@@ -275,8 +285,8 @@ class VeinPlayerStat extends HTMLElement {
     render() {
         return render => render`
             <div class="flex gap-4">
-                <div class="w-[20rem]">${this.name}</div>
-                <div>${this.value}</div>
+                <div class="w-[20rem] justify-left">${this.name}</div>
+                <div class="justify-right">${this.value.toFixed(2)}</div>
             </div>
         `;
     }
@@ -332,7 +342,7 @@ class VeinStat extends HTMLElement {
         return render => render`
             <div class="flex gap-4">
                 <div class="w-[20rem] text-base text-white">${this.name}</div>
-                <div class="text-base font-bold text-gray-300">${this.value}</div>
+                <div class="text-base font-bold text-gray-300">${this.value.toFixed(2)}</div>
             </div>
         `;
     }
@@ -364,7 +374,7 @@ class VeinCharacterData extends HTMLElement {
 class VeinUptime extends HTMLElement {
     constructor() {
         super();
-        this.uptime = 0;
+        this.uptime = '';
     }
 
     render() {
@@ -461,7 +471,7 @@ class StatusPage extends HTMLElement {
         return render => render`
             <article id="status" class="${this.page == 'status' ? 'flex flex-col gap-4 p-8' : 'hidden'}">
                 <section id="uptime" class="flex gap-4">
-                    <vein-uptime uptime=0 />
+                    <vein-uptime uptime="" />
                 </section>
 
                 <vein-players />
@@ -517,6 +527,23 @@ class LogLineView extends HTMLElement {
         `;
     }
 }
+class LogInPage extends HTMLElement {
+    constructor() {
+        super();
+    }
+    connectedCallback() {
+        if (this.el) return;
+        lemonade.render(this.render, this, this);
+    }
+    disconnectedCallback() {
+        SSE.disconnect(this);
+    }
+    render() {
+        return render => render`
+        `;
+    }
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const handleEvent = (event) => {
@@ -567,7 +594,7 @@ const HANDLERS = {
     status: (status) => {
         SSE.fire('status', status);
         SSE.fire('online_characters', Object.values(status.online_players).map(p => p.character_id));
-        SSE.fire('uptime', status.uptime);
+        SSE.fire('uptime', status.human_uptime);
     },
     logs: (logs) => {
         SSE.fire('logs', logs);

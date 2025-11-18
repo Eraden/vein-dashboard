@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     config::Config,
     identity::SessionManager,
-    utils::{Client, ServerEventBus},
+    utils::{Client, ServerEvent, ServerEventBus, Session},
 };
 
 mod config;
@@ -37,45 +37,90 @@ async fn events(
     req: HttpRequest,
     event_bus: web::Data<ServerEventBus>,
     session_manager: web::Data<SessionManager>,
+    config: web::Data<Arc<RwLock<Config>>>,
 ) -> Result<impl Responder, Forbidden> {
     use actix_web_lab::sse::*;
 
-    let Some(session) = req.cookie("session") else {
-        return Err(Forbidden);
+    let uuid = if config.read().await.auth_enabled {
+        resolve_uuid(req, session_manager.clone()).await
+    } else {
+        Session::Disabled
     };
-    let Ok(uuid): Result<Uuid, _> = Uuid::from_str(session.value()) else {
-        return Err(Forbidden);
-    };
-    if !session_manager.exists(uuid).await {
-        return Err(Forbidden);
-    }
 
     let (tx, rx) = tokio::sync::mpsc::channel(1);
-    let mut bus_receiver = event_bus.receiver();
-    tokio::spawn(async move {
-        tracing::info!("Awaiting server events...");
-        while let Ok(event) = bus_receiver.recv().await {
-            if !session_manager.exists(uuid).await {
-                break;
-            }
-            tracing::debug!("New server event: {event:?}");
-
-            let ev = Data::new(serde_json::to_string(&event).unwrap())
-                .id(uuid::Uuid::new_v4().to_string())
-                .event("server_event");
-            let Ok(_) = tx
-                .send(ev.into())
-                .await
-                .inspect_err(|e| tracing::warn!("Event bus died: {e}"))
-            else {
-                break;
-            };
-            session_manager.refresh(uuid).await;
-        }
-        tracing::info!("Server events channel closed");
-    });
+    tokio::spawn(event_loop(
+        tx,
+        uuid,
+        event_bus.clone(),
+        session_manager.clone(),
+    ));
 
     Ok(Sse::from_infallible_receiver(rx).with_keep_alive(Duration::from_secs(10)))
+}
+
+async fn resolve_uuid(req: HttpRequest, session_manager: web::Data<SessionManager>) -> Session {
+    let Some(session) = req.cookie("session") else {
+        return Session::None;
+    };
+    let Some(uuid): Option<Uuid> = Uuid::from_str(session.value()).ok() else {
+        return Session::None;
+    };
+    if !session_manager.exists(uuid).await {
+        return Session::None;
+    }
+    Session::Some(uuid)
+}
+
+async fn event_loop(
+    tx: tokio::sync::mpsc::Sender<actix_web_lab::sse::Event>,
+    session: Session,
+    event_bus: web::Data<ServerEventBus>,
+    session_manager: web::Data<SessionManager>,
+) {
+    use actix_web_lab::sse::*;
+    let mut bus_receiver = event_bus.receiver();
+    tracing::info!("Awaiting server events...");
+    while let Ok(event) = bus_receiver.recv().await {
+        match session {
+            Session::Some(uuid) if !session_manager.exists(uuid).await => {
+                emit_forbidden(&tx).await;
+                break;
+            }
+            Session::None => {
+                emit_forbidden(&tx).await;
+                break;
+            }
+            _ => {}
+        };
+        tracing::debug!("New server event: {event:?}");
+
+        let ev = Data::new(serde_json::to_string(&event).unwrap())
+            .id(uuid::Uuid::new_v4().to_string())
+            .event("server_event");
+        let Ok(_) = tx
+            .send(ev.into())
+            .await
+            .inspect_err(|e| tracing::warn!("Event bus died: {e}"))
+        else {
+            break;
+        };
+        if let Session::Some(uuid) = session {
+            session_manager.refresh(uuid).await;
+        }
+    }
+    tracing::info!("Server events channel closed");
+}
+
+async fn emit_forbidden(tx: &tokio::sync::mpsc::Sender<actix_web_lab::sse::Event>) {
+    use actix_web_lab::sse::*;
+    tx.send(
+        Data::new(serde_json::to_string(&ServerEvent::Forbidden).unwrap())
+            .id(uuid::Uuid::new_v4().to_string())
+            .event("forbidden")
+            .into(),
+    )
+    .await
+    .ok();
 }
 
 #[actix_web::get("/")]
@@ -106,7 +151,7 @@ struct AdminSignIn {
 
 #[actix_web::post("/sign-in")]
 async fn sign_in(
-    payload: web::Json<AdminSignIn>,
+    payload: web::Form<AdminSignIn>,
     admins: web::Data<Admins>,
     session_manager: web::Data<SessionManager>,
 ) -> impl Responder {
@@ -116,7 +161,9 @@ async fn sign_in(
         .iter()
         .any(|admin| admin.password == payload.password && admin.login == payload.login);
     if !is_valid {
-        return HttpResponse::Forbidden().finish();
+        return HttpResponse::SeeOther()
+            .append_header(("Location", "/?forbidden"))
+            .finish();
     }
     let uuid = session_manager.new_session().await;
     HttpResponse::SeeOther()
@@ -136,13 +183,34 @@ async fn app_js() -> HttpResponse {
     {
         HttpResponse::Ok()
             .insert_header((CONTENT_TYPE, "text/javascript"))
-            .body(tokio::fs::read_to_string("./assets/app.js").await.unwrap())
+            //.body(tokio::fs::read_to_string("./assets/app.js").await.unwrap())
+            .body(tokio::fs::read_to_string("./dist/web.js").await.unwrap())
     }
     #[cfg(not(debug_assertions))]
     {
         HttpResponse::Ok()
             .insert_header((CONTENT_TYPE, "text/javascript"))
-            .body(include_str!("../assets/app.js"))
+            //.body(include_str!("../assets/app.js"))
+            .body(include_str!("../dist/web.js"))
+    }
+}
+#[actix_web::get("/web.js.map")]
+async fn web_js_map() -> HttpResponse {
+    #[cfg(debug_assertions)]
+    {
+        HttpResponse::Ok()
+            .insert_header((CONTENT_TYPE, "text/javascript"))
+            .body(
+                tokio::fs::read_to_string("./dist/web.js.map")
+                    .await
+                    .unwrap(),
+            )
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        HttpResponse::Ok()
+            .insert_header((CONTENT_TYPE, "text/javascript"))
+            .body(include_str!("../dist/web.js.map"))
     }
 }
 #[actix_web::get("/style.css")]
@@ -243,9 +311,11 @@ async fn main() -> std::io::Result<()> {
             .app_data(config.clone())
             .app_data(admins.clone())
             .app_data(session_manager.clone())
+            .service(sign_in)
             .service(events)
             .service(index)
             .service(app_js)
+            .service(web_js_map)
             .service(style_css)
     })
     .bind((bind.as_str(), port))?

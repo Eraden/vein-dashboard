@@ -2,8 +2,25 @@ use std::sync::Arc;
 
 use serde::{Serialize, de::DeserializeOwned};
 use tokio::sync::{RwLock, broadcast};
+use uuid::Uuid;
 
 use crate::{config::Config, logs::LogLine};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Session {
+    Disabled,
+    Some(Uuid),
+    None,
+}
+
+impl From<Option<Uuid>> for Session {
+    fn from(value: Option<Uuid>) -> Self {
+        match value {
+            Some(uuid) => Self::Some(uuid),
+            _ => Self::None,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -11,6 +28,7 @@ pub enum ServerEvent {
     Status(crate::game::event::Status),
     Logs(Vec<LogLine>),
     Players(Vec<crate::players::event::Player>),
+    Forbidden,
 }
 
 impl From<crate::game::event::Status> for ServerEvent {
@@ -38,7 +56,7 @@ impl Client {
         endpoint: &str,
     ) -> reqwest::Result<T> {
         let c = self.config.read().await;
-        let res = self
+        let s = self
             .client
             .get(format!(
                 "{bind}:{port}{endpoint}",
@@ -47,10 +65,12 @@ impl Client {
             ))
             .send()
             .await?
-            .json()
-            .await;
+            .text()
+            .await?;
 
-        if res.is_err() {
+        let res = serde_json::from_str(&s);
+
+        if let Err(ref e) = res {
             let res: serde_json::Value = self
                 .client
                 .get(format!(
@@ -68,17 +88,23 @@ impl Client {
             let err = serde_json::from_str::<T>(&txt).err().unwrap();
             let line = err.line();
 
+            let to_skip = line.saturating_sub(5);
             let error_sector = txt
                 .lines()
-                .skip(line.saturating_sub(3))
-                .take(6)
+                .skip(to_skip)
+                .take(10)
+                .enumerate()
+                .map(|(idx, s)| match idx {
+                    _ if idx == line - to_skip - 1 => format!("{s} <<<<"),
+                    _ => s.to_string(),
+                })
                 .collect::<Vec<_>>()
                 .join("\n");
 
-            tracing::error!("{}", error_sector);
+            tracing::error!("{e}\n{}", error_sector);
         }
 
-        res
+        Ok(res.unwrap())
     }
 }
 

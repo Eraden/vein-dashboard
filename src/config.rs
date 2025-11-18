@@ -10,6 +10,8 @@ pub struct Config {
     pub bind: Option<String>,
     #[serde(default)]
     pub port: Option<u16>,
+    #[serde(default)]
+    pub auth_enabled: bool,
 }
 
 impl Config {
@@ -26,6 +28,7 @@ impl Default for Config {
             refresh_interval_sec: Some(5),
             bind: Some("0.0.0.0".into()),
             port: Some(8765),
+            auth_enabled: true,
         }
     }
 }

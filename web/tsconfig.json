@@ -1,0 +1,23 @@
+{
+  "include": ["**/*.ts", "**/*.tsx", "../node_modules/lemonadejs"],
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "target": "ES2023",
+    "strict": false,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": false,
+    "baseUrl": ".",
+    "module": "ESNext",
+    "declarationDir": "./types",
+    "paths": {
+      "~/*": ["./web/*"],
+    },
+    "types": ["@rspack/core/module"],
+    "noEmit": true,
+  },
+}

@@ -36,16 +36,19 @@ pub fn start(event_bus: &ServerEventBus, config: &Config) {
                 .await
                 .map(|out| out.stdout);
             if let Err(e) = &out {
-                tracing::error!("Unable to read server logs: {e}");
+                tracing::error!("Server logs: {e}");
                 #[cfg(not(debug_assertions))]
                 {
+                    tracing::warn!("Server logs: Retrying...");
                     continue;
                 }
             }
 
             let out = if out.is_err() && cfg!(debug_assertions) {
+                tracing::warn!("Server logs: serving mock");
                 LOGS.trim().bytes().collect::<Vec<u8>>()
             } else {
+                tracing::warn!("Server logs: serving empty");
                 out.unwrap_or_default()
             };
 

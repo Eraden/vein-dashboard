@@ -51,7 +51,7 @@ pub mod vein {
     #[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct VeinClothId {
-        pub data: i64,
+        pub data: f64,
     }
 
     #[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
@@ -66,8 +66,8 @@ pub mod vein {
         pub addictions: Vec<serde_json::Value>,
         pub illnesses: Vec<serde_json::Value>,
         #[serde(rename = "hP")]
-        pub hp: u16,
-        pub consciousness: u16,
+        pub hp: f64,
+        pub consciousness: f64,
         #[serde(rename = "bUnconscious")]
         pub unconscious: bool,
         pub temperature: f64,
@@ -90,14 +90,14 @@ pub mod vein {
     #[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct VeinCharacterInventoryItemId {
-        pub data: i64,
+        pub data: f64,
     }
 
     #[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct VeinCharacterInventoryItem {
         pub item: String,
-        pub variant: i64,
+        pub variant: f64,
         pub item_data: VeinCharacterInventoryItemData,
         pub acquisition_time: f64,
         pub slot: String,
@@ -106,8 +106,8 @@ pub mod vein {
         pub damage_perc: f64,
         #[serde(rename = "iD")]
         pub id: VeinCharacterInventoryItemId,
-        pub decay: i64,
-        pub stack: i64,
+        pub decay: f64,
+        pub stack: f64,
         pub custom_label: String,
     }
 
@@ -154,7 +154,7 @@ pub mod event {
     #[derive(Debug, PartialEq, Clone, Serialize)]
     #[serde(rename_all = "snake_case")]
     pub struct CharacterInventoryItemId {
-        pub data: i64,
+        pub data: f64,
     }
 
     impl From<VeinCharacterInventoryItemId> for CharacterInventoryItemId {
@@ -244,7 +244,7 @@ pub mod event {
     pub struct CharacterInventoryItem {
         pub item: String,
         pub name: String,
-        pub variant: i64,
+        pub variant: f64,
         pub item_data: CharacterInventoryItemData,
         pub acquisition_time: f64,
         pub slot: String,
@@ -252,8 +252,8 @@ pub mod event {
         pub instance: String,
         pub damage_perc: f64,
         pub id: CharacterInventoryItemId,
-        pub decay: i64,
-        pub stack: i64,
+        pub decay: f64,
+        pub stack: f64,
         pub custom_label: String,
     }
 

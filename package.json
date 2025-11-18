@@ -1,0 +1,18 @@
+{
+  "devDependencies": {
+    "@swc/cli": "^0.7.9",
+    "@swc/core": "^1.15.2",
+    "@swc/html": "^1.15.2"
+  },
+  "dependencies": {
+    "@feature-sliced/cli": "^1.0.0",
+    "@rspack/cli": "^1.6.3",
+    "@rspack/core": "^1.6.3",
+    "@swc/wasm-web": "^1.15.2",
+    "fsd": "^0.14.0",
+    "lemonade": "^1.1.0",
+    "lemonadejs": "^5.3.2",
+    "lodash": "^4.17.21",
+    "spack": "^1.0.0"
+  }
+}

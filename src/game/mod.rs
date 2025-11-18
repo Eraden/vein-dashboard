@@ -16,10 +16,10 @@ pub mod vein {
     #[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct VeinWeather {
-        pub precipitation: u64,
-        pub cloudiness: u64,
+        pub precipitation: f64,
+        pub cloudiness: f64,
         pub temperature: f64,
-        pub fog: u64,
+        pub fog: f64,
         pub pressure: f64,
         pub relative_humidity: f64,
         pub wind_direction: f64,
@@ -79,12 +79,15 @@ pub mod event {
     #[derive(Debug, Serialize, PartialEq, Clone)]
     pub struct Status {
         pub uptime: f64,
+        pub human_uptime: String,
         pub online_players: HashMap<PlayerId, PlayerStatus>,
     }
 }
 
 pub mod agent {
     use std::collections::HashMap;
+
+    use human_time::ToHumanTimeString;
 
     use crate::{
         config::Config,
@@ -111,6 +114,25 @@ pub mod agent {
 
                 let mut status = super::event::Status {
                     uptime: vein_status.uptime,
+                    human_uptime: chrono::Duration::seconds(vein_status.uptime as i64)
+                        .to_std()
+                        .unwrap_or_default()
+                        .to_human_time_string_with_format(
+                            |n, unit| {
+                                format!(
+                                    "{n}{}",
+                                    match unit {
+                                        "d" => "days".to_owned(),
+                                        "h" => "h".to_owned(),
+                                        "m" => "m".to_owned(),
+                                        "s" => "s".to_owned(),
+                                        "ms" => "ms".to_owned(),
+                                        other => other.to_string(),
+                                    }
+                                )
+                            },
+                            |acc, item| format!("{} {}", acc, item),
+                        ),
                     online_players: HashMap::with_capacity(vein_status.online_players.capacity()),
                 };
                 for (player_id, player_status) in vein_status.online_players {

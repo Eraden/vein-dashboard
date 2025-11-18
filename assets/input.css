@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+@layer app {
+    .forbidden vein-authorized {
+        @apply hidden;
+    }
+    .authorized vein-login-page {
+        @apply hidden;
+    }
+}
